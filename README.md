@@ -33,7 +33,8 @@ Avalon 是一个用于 **内网穿透** 工具，与frp不同的是，它采用t
 ```json
 // wall_config.json
 {
-  "ports":[22],
+  "jump_ports":[22],
+  "ban_ports": [],
   "call_port":39999,
   "debug":false,
   "black_ip_path":"black.txt",
@@ -45,7 +46,7 @@ Avalon 是一个用于 **内网穿透** 工具，与frp不同的是，它采用t
 
 ### 字段解释
 
-- `jump_ports`：该数组内的端口会被本机接管不会被穿透
+- `jump_ports`：该数组内的端口会被本机接管不会被穿透, 建议提前将本机ssh端口填入该数组内，如失误导致连接不上本机重启即可
 - `ban_ports`: 该数组内的端口会被iptables直接丢弃
 - `call_port`：监听端口，用于反向代理
 - `debug`：基本没什么用，默认false就好
