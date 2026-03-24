@@ -17,6 +17,7 @@ Avalon 是一个用于 **内网穿透** 工具，与frp不同的是，它采用t
 
 - 能被外部访问
 - Linux 环境
+- 安装iptables
 - 一般需要 root 权限运行
 
 ### 内网机器运行 `avalon`
@@ -30,11 +31,11 @@ Avalon 是一个用于 **内网穿透** 工具，与frp不同的是，它采用t
 ## 示例配置
 
 ```json
-// Wall config.json
+// wall_config.json
 {
   "ports":[22],
   "call_port":39999,
-  "debug":true,
+  "debug":false,
   "black_ip_path":"black.txt",
   "black_ips_list":["45.186.0.0/16"]
 }
@@ -44,16 +45,17 @@ Avalon 是一个用于 **内网穿透** 工具，与frp不同的是，它采用t
 
 ### 字段解释
 
-- `ports`：黑名单端口，该数组内的端口不会被转发
+- `jump_ports`：该数组内的端口会被本机接管不会被穿透
+- `ban_ports`: 该数组内的端口会被iptables直接丢弃
 - `call_port`：监听端口，用于反向代理
-- `debug`：没什么用
+- `debug`：基本没什么用，默认false就好
 - `black_ip_path`：可配置的黑名单数据库，支持的数据库结构参照：https://github.com/borestad/blocklist-abuseipdb
 - `black_ips_list`: 可配置的黑名单IP段
 
 ---
 
 ```json
-// Avalon config.json
+// avalon_config.json
 {
   "remote_addr":"YOUR_WALL_IP:WALL_CALL_PORT",
 }
