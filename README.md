@@ -25,9 +25,13 @@ avalon通过iptables和tun在网络层工作，所以使用该程序需要拥有
 - debug: 可选, 类型为布尔值, 默认为false, 用处不大
 - black_ip_path: 可选, 类型为文件路径(String), 黑名单ip数据库，支持的数据库结构参照：https://github.com/borestad/blocklist-abuseipdb，黑名单ip的请求访问都会被丢弃
 - black_ips:list: 可选，类型为数组(值为String), 数组内的ip段都会被丢弃
-- **mss_less**: 可选，类型为u32，启用后将Maximum Segment Size强制设置为配置值，用于实现MSS 钳制以解决mtu问题，如果遇到无法正常使用等问题可以考虑将mss_less设置为1360及以下
+- **mss_less**: 可选，类型为u32，启用后将Maximum Segment Size强制设置为配置值，用于实现MSS 钳制以解决mtu问题
 - tls_pem_path: 必选, 类型为文件路径(String), QUIC所需的X.509证书公钥
 - tls_key_path: 必选, 类型为文件路径(String), QUIC所需的X.509证书私钥
+
+如果遇到奇怪的数据丢失问题，连接成功却无法正常通信的问题，尝试设置mss_less, mss_less在v1.6.0版本将默认值修改为规范（1460），在v1.5.0版本，默认值为1500, 这是已知的bug, 由于v1.6.0对底层等有巨大变动，所以在测试完成前不会发布v1.6.0版本，如果在v1.5.0版本使用异常，尝试将mss_less依次尝试设置为: 1460 -> 1400 -> 1360
+
+由于作者机器存在mss相关问题，所以无法测试v1.5.0版本默认值是否能够正常运行
 
 -------
 
