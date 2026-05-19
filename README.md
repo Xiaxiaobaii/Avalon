@@ -1,6 +1,6 @@
 # Avalon
 
-avalon, 意为 阿瓦隆, 象征亚瑟王的安息之地，也是亚瑟王手中`遥远的理想乡`
+avalon, 名称来源意为 阿瓦隆, 象征亚瑟王的安息之地，也是亚瑟王手中`遥远的理想乡`（大概）
 
 目前是一个底部为QUIC协议的端口转发程序，但不同于frp的是
 
@@ -12,13 +12,15 @@ avalon通过iptables和tun在网络层工作，所以使用该程序需要拥有
 
 [TODO] 更好的底层tun库与Hardware Offload正在测试中.....
 
-[warn] 在默认情况下，wall会转发机器的**全部端口**, 所以需要在jump_ports提前jump掉wall端机器的ssh端口以免失联，当然，iptables的设置并不会将其持久化，所以如果失恋只需在云服务器的控制台或者物理机重启即可
+[warn] 在默认情况下，wall会转发机器的**全部端口**, 所以需要在jump_ports提前jump掉wall端机器的ssh端口以免失联，当然，iptables的设置并不会将其持久化，所以如果失联只需在云服务器的控制台或者物理机重启即可
 
-顺带一提，作者没有足够好的配置或者足够多的设备测试带宽上线，对实际使用时的带宽作用不做保证，但在v1.5.0之后完成了正式的测试和持久性验证能够确保可以作为24*7的稳定应用运行
+[warn] 目前软件会处理所有ICMP及TCP包，但是不会处理UDP包（等待支持中）
 
 ## 配置文件解释
 
-### wall_config.json
+v1.6.0版本的配置文件名称统一为config.json, 此前版本wall端为wall_config.json, avalon端为avalon_config.json
+
+### wall side
 - jump_ports: 可选, 类型为数组(值为u16), 数组内的端口都不会转发到内网服务器而是在wall端处理
 - ban_ports: 可选，类型为数组(值为u16)，数组内的端口会被直接丢弃
 - call_port: 可选，类型为u16, 默认为39999, wall端与avalon端沟通的端口
@@ -29,23 +31,39 @@ avalon通过iptables和tun在网络层工作，所以使用该程序需要拥有
 - tls_pem_path: 必选, 类型为文件路径(String), QUIC所需的X.509证书公钥
 - tls_key_path: 必选, 类型为文件路径(String), QUIC所需的X.509证书私钥
 
-如果遇到奇怪的数据丢失问题，连接成功却无法正常通信的问题，尝试设置mss_less, mss_less在v1.6.0版本将默认值修改为规范（1460），在v1.5.0版本，默认值为1500, 这是已知的bug, 由于v1.6.0对底层等有巨大变动，所以在测试完成前不会发布v1.6.0版本，如果在v1.5.0版本使用异常，尝试将mss_less依次尝试设置为: 1460 -> 1400 -> 1360
-
-由于作者机器存在mss相关问题，所以无法测试v1.5.0版本默认值是否能够正常运行
+如果遇到奇怪的数据丢失问题，连接成功却无法正常通信的问题，尝试将mss_less依次尝试设置为: 1460 -> 1400 -> 1360
 
 -------
 
-### avalon_config.json
+### avalon side
 - remote_addr: 必选, 类型为String, 配置为wall端服务器的地址+端口, 如"159.43.243.12:3999"
 - tls_pem_path: 必选, 类型为文件路径(String), QUIC所需的X.509证书公钥, 与服务器公钥相同
 
+```
+示例文件
+wall side:
+
+{"tls_pem_path": "ed25519_cert.pem", "tls_key_path": "ed25519_private.pem"}
+
+avalon side:
+{"tls_pem_path": "ed25519_cert.pem", "remote_addr": "your remote address"}
+```
+
 ## 关于QUIC密钥的简单生成
 
-注：签名的域名/IP就是客户端连接服务端时使用的域名/IP, 如配置文件中, remote_addr设置为"159.43.243.12:3999", 则使用仅IP的签名并设置`subjectAltName=IP:159.43.243.12`下面有完整的签名示例
+v1.6.0版本可使用--tls-create flag交互式生成证书,  需要安装openssl软件包
+
+`sudo apt install openssl`
+
+启用软件时附加--tls-create即可进入交互式生成环节
 
 密钥在wall端生成一次后，将公钥copy一份给avalon端即可
 
+### 手动生成
+
 指令只需要修改subjectAltName后面的参数即可
+
+注：签名的域名/IP就是客户端连接服务端时使用的域名/IP, 如配置文件中, remote_addr设置为"159.43.243.12:3999", 则使用仅IP的签名并设置`subjectAltName=IP:159.43.243.12`下面有完整的签名示例
 
 仅域名
 ```
