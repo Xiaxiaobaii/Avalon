@@ -2,13 +2,13 @@
 
 avalon, 名称来源意为 阿瓦隆, 象征亚瑟王的安息之地，也是亚瑟王手中`遥远的理想乡`（大概）
 
-我称他为IP托管软件，目的是通过xdp/iptables将某台机器的流量通过quic/tcp mux反向代理到另一台机器，与frp等内网穿透软件不同的是，该软件除了可以使用xdp进行内核级数据包转发与路由，同时还使用tun+linux offload来处理流量
+我称他为IP托管软件，目的是通过xdp/iptables将某台机器的流量通过quic/tcp mux反向代理到另一台机器，与frp等内网穿透软件不同的是，该软件除了可以使用xdp进行内核级数据包转发与路由，同时还使用tun+linux offload来处理流量, 在默认情况下，他将代理主机的全部流量而不是部分端口.....这是与常规内网穿透软件的显著差异
 
 软件分为两个部分，wall端以及avalon端，wall端一般作为公网机器，将来临的流量转发到avalon端（一般作为内网机器）
 
  - 在默认情况下，wall会转发机器的**全部流量**, 所以需要在jump_ports提前包含wall端机器的ssh端口以免失联，当然，iptables/xdp的设置并不会将其持久化，所以如果失联只需在云服务器的控制台或者物理机重启即可
 
- - 目前软件仅转发TCP包，对于ICMP/UDP包则会直接由wall端机器接收，对于UDP包会在未来进行支持
+ - 软件在1.8.0已经支持tcp+udp, ICMP与未知网络层数据包会被投送进wall端机器正常内核网络栈中
 
  - 切记wall端与avalon端需要保证使用相同分支（quic or tcp mux）
 
@@ -16,56 +16,19 @@ avalon, 名称来源意为 阿瓦隆, 象征亚瑟王的安息之地，也是亚
 
 使用的编程语言：Rust
 
-## 配置文件解释
-
-v1.6.0版本的配置文件名称统一为config.json, 此前版本wall端为wall_config.json, avalon端为avalon_config.json
-
-### wall side
-- jump_ports: 可选, 类型为数组(值为u16), 数组内的端口都不会转发到内网服务器而是在wall端处理
-- ban_ports: 可选，类型为数组(值为u16)，数组内的端口会被直接丢弃
-- call_port: 可选，类型为u16, 默认为39999, wall端与avalon端沟通的端口
-- debug: 可选, 类型为布尔值, 默认为false, 用处不大
-- black_ip_path: 可选, 类型为文件路径(String), 黑名单ip数据库，支持的数据库结构参照：https://github.com/borestad/blocklist-abuseipdb，黑名单ip的请求访问都会被丢弃
-- black_ips:list: 可选，类型为数组(值为String), 数组内的ip段都会被丢弃
-- **mss_less**: 可选，类型为u32，启用后将Maximum Segment Size强制设置为配置值，用于实现MSS钳制以解决pmtu问题
-- tls_pem_path: 可选, 类型为文件路径(String), QUIC所需的X.509证书公钥，如缺失则自动fallback至tcp复用分支
-- tls_key_path: 可选, 类型为文件路径(String), QUIC所需的X.509证书私钥，如缺失则自动fallback至tcp复用分支
-- enable_trie: 可选, 类型为布尔值，是否使用trie算法来进行黑名单IP控制，默认算法为bloom
-- enable_xdp: 可选，类型为String(需要路由的网卡名称)，是否使用xdp来路由流量，默认使用iptables进行路由
-- use_skb: 可选，类型为布尔值，如果网卡不支持native xdp,则会提示使用Skb mode, 此时启用该选项即可
-- disable_offload, 可选，类型为布尔值，启用后会禁用Linux Offload, 一般来说不建议使用
-- old_handler: 可选，类型为布尔值，启用后强制使用tcp多路复用线路而非quic
-
--------
-
-### avalon side
-- **remote_addr**: **必选**, 类型为String, 配置为wall端服务器的地址+端口, 如"159.43.243.12:3999"
-- tls_pem_path: 可选, 类型为文件路径(String), QUIC所需的X.509证书公钥, 与服务器公钥相同，如缺失则自动fallback至tcp复用分支
-- old_handler: 可选，类型为布尔值，启用后强制使用tcp多路复用线路而非quic
-
-```
-示例文件
-wall side:
-
-{"tls_pem_path": "ed25519_cert.pem", "tls_key_path": "ed25519_private.pem"}
-
-avalon side:
-{"tls_pem_path": "ed25519_cert.pem", "remote_addr": "your remote address"}
-```
+**配置文件解释:现已全部转移到Config.md**
 
 ## 关于未来更新路线（TODO）
 
 1. 提供类似SRV解析的方式使能通过不同的域名转发到不同的端口（预计会解析更深层次的信息，目前计划上不会默认启用）
 
-2. UDP相关支持
+2. 更多更多的性能优化
 
-3. 更多更多的性能优化
+3. 提供简单可选的API以能够查看软件状态和统计信息（预计会解析更深层次的信息，目前计划上不会默认启用）
 
-5. 提供简单可选的API以能够查看软件状态和统计信息（预计会解析更深层次的信息，目前计划上不会默认启用）
+4. 合并black_ip_path与black_ips:list参数
 
-6. 合并black_ip_path与black_ips:list参数
-
-## 可能需要的技术细节
+## 可能需要的技术细节与bug  
 
 ### 关于xdp
 
@@ -84,16 +47,15 @@ qp trie与bloom对于个人使用几乎只有内存区别，由于bloom算法特
 
 由于配置值为mss而非mtu, 假设主机出入口网卡mtu为1400, 则配置值应当改为1360, 默认情况下, mss_less配置值为1460
 
+## 关于QUIC密钥生成
 
-## 关于QUIC密钥的简单生成
-
-v1.6.0及以后版本可使用--tls-create flag交互式生成证书,  需要安装openssl软件包
+v1.6.0及以后版本可使用--tls-create flag交互式生成证书, 需要安装openssl软件包
 
 `sudo apt install openssl`
 
-启用软件时附加--tls-create即可进入交互式生成环节
+启用软件时附加--tls-create即可进入交互式生成环节, 在生成完成后, 程序会在wall端程序目录下生成`ed25519_private.pem`与`ed25519_cert.pem`, `ed25519_cert.pem`为程序公钥, 而`ed25519_private.pem`为程序私钥，使用ed25519进行加密
 
-密钥在wall端生成一次后，将公钥copy一份给avalon端即可
+密钥在wall端生成后, 将公钥复制一份到avalon端机器并填写配置即可
 
 ### 手动生成
 
