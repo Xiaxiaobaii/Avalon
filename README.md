@@ -32,7 +32,9 @@ avalon, 名称来源意为 阿瓦隆, 象征亚瑟王的安息之地，也是亚
 
 ### 关于xdp
 
-目前有一个已知的bug, 对于xdp路线并不会处理网段过滤
+目前有一个稍微未实现的功能：对于ipv6的转发和控制（在遇到ipv6的请求时会直接放行进wall端机器）
+
+IP段最高可任意ban 50个网段
 
 对于xdp分支, jump_ports与ban_ports均在xdp层面被拦截，而黑名单ip功能在用户态，未来会将黑名单ip/网段以bloomfilter + lpm trie聚合的方式实现在xdp中
 
