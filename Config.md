@@ -22,6 +22,7 @@ v1.6.0版本的配置文件名称统一为config.json, 此前版本wall端为wal
 ## avalon side
 - **remote_addr**: **必选**, 类型为String, 配置为wall端服务器的地址+端口, 如"159.43.243.12:3999"
 - tls_pem_path: 可选, 类型为文件路径(String), QUIC所需的X.509证书公钥, 与服务器公钥相同，如缺失则自动fallback至tcp复用分支
+- forward_addr: 可选，类型为IP地址（String），默认为127.0.0.1,在wall端流量到来时请求的对应端口ip
 - old_handler: 可选，类型为布尔值，启用后强制使用tcp多路复用线路而非quic
 - debug: 可选, 类型为布尔值, 默认为false, 用处不大
 
